@@ -53,16 +53,66 @@ function Register()
 				return false;
 			}
 
+			function CalculateSRP6Verifier($username, $password, $salt)
+			{
+				// algorithm constants
+				$g = gmp_init(7);
+				$N = gmp_init('894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7', 16);
+
+				// calculate first hash
+				$h1 = sha1(strtoupper($username . ':' . $password), TRUE);
+
+				// calculate second hash
+				$h2 = sha1($salt . $h1, TRUE);
+
+				// convert to integer (little-endian)
+				$h2 = gmp_import($h2, 1, GMP_LSW_FIRST);
+
+				// g^h2 mod N
+				$verifier = gmp_powm($g, $h2, $N);
+
+				// convert back to a byte array (little-endian)
+				$verifier = gmp_export($verifier, 1, GMP_LSW_FIRST);
+
+				// pad to 32 bytes, remember that zeros go on the end in little-endian!
+				$verifier = str_pad($verifier, 32, chr(0), STR_PAD_RIGHT);
+
+				// done!
+				return $verifier;
+			}
+
+			function GetSRP6RegistrationData($username, $password)
+			{
+				// generate a random salt
+				$salt = random_bytes(32);
+
+				// calculate verifier using this salt
+				$verifier = CalculateSRP6Verifier($username, $password, $salt);
+
+				// done - this is what you put in the account table!
+				return array($salt, $verifier);
+			}
+
+			function VerifySRP6Login($username, $password, $salt, $verifier)
+			{
+				// re-calculate the verifier using the provided username + password and the stored salt
+				$checkVerifier = CalculateSRP6Verifier($username, $password, $salt);
+
+				// compare it against the stored verifier
+				return ($verifier === $checkVerifier);
+			}
+
 			global $con;
 
 			$username   = $_POST['username'];
 			$email      = $_POST['email'];
 			$password   = $_POST['password'];
 			$repassword = $_POST['re-password'];
-			$captcha    = $_POST['g-recaptcha-response'];
+			//$captcha    = $_POST['g-recaptcha-response'];
 			$ip_address = $_SERVER['REMOTE_ADDR'];
 			$secret     = CAPTCHA_SECRET;
 			$expansion  = EXPANSION;
+
 
 			if(ValidateUsername($username) && ValidateEmail($email))
 			{
@@ -74,13 +124,18 @@ function Register()
 
 				if($data->fetchColumn() == 0)
 				{
-					if(Captcha($secret, $captcha, $ip_address))
-					{
-						$data = $con->prepare('INSERT INTO account (username, sha_pass_hash, email, last_ip, expansion) 
-							VALUES(:username, :password, :email, :ip, :expansion)');
+					//if(Captcha($secret, $captcha, $ip_address))
+					//{
+					$array = GetSRP6RegistrationData($username, $password);
+					$salt = $array[0];
+					$verifier = $array[1];
+
+					$data = $con->prepare('INSERT INTO account (username, salt, verifier, email, last_ip, expansion) 
+							VALUES(:username, :salt, :verifier, :email, :ip, :expansion)');
 						$data->execute(array(
 							':username'  => $username,
-							':password'  => sha1(strtoupper($username) . ':' . strtoupper($password)),
+							':salt' 	 => $salt,
+							':verifier'  => $verifier,
 							':email'     => $email,
 							':ip'        => $ip_address,
 							':expansion' => $expansion
@@ -88,11 +143,11 @@ function Register()
 
 						echo '<div class="callout success">' . SUCCESS_MESSAGE . '</div>';
 						echo '<div class="callout warning">' . REALMLIST . '</div>';
-					}
-					else
-					{
-						echo '<div class="callout alert">Capctha was invalid!</div>';
-					}
+					//}
+					//else
+					//{
+						//echo '<div class="callout alert">Capctha was invalid!</div>';
+					//}
 				}
 				else
 				{

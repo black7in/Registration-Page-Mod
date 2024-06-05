@@ -3,14 +3,15 @@
 $config = array(
     'HOST' => 'localhost',
     'USER' => 'root',
-    'PASS' => '',
-    'DB'   => '',
-    'CORE' => ''
+    'PASS' => 'ascent',
+    'DB'   => 'acore_auth',
+    'CORE' => 'ac'
 );
 
 
 // General Settings
-define('EXPANSION', 1); // 1 = Vanilla / 2 = TBC / 3 = WOTLK
+define('SERVER_NAME', 'Server Names');
+define('EXPANSION', 3); // 1 = Vanilla / 2 = TBC / 3 = WOTLK
 define('REALMLIST', 'set realmlist logon.servername.com');
 
 // Google ReCaptcha Settings

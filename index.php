@@ -28,7 +28,7 @@ include('inc/functions.php');
 <div class="row">
 	<div class="content">
 		<div class="content-logo">
-			ServerName
+			<?php echo SERVER_NAME; ?>
 		</div>
 
 		<div class="content-logo-sub">
@@ -47,7 +47,6 @@ include('inc/functions.php');
 					<input type="password" name="re-password" placeholder="Retype Password" />
 
 					<center>
-						<div class="g-recaptcha" data-sitekey="<?php echo CAPTCHA_CLIENT_ID; ?>"></div>
 						<br>
 						<input type="submit" name="register" class="small button" value="Create a free account" />
 					</center>
